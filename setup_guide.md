@@ -74,7 +74,7 @@ Clone the public repository of the demo from Github
 ```bash
 # From VM shell
 cd ~/api-security-demo
-git clone https://github.com/giobizzi/SecurityAPI_demo.git 
+git clone https://github.com/giobizzi/Security_API_demo.git 
 ```
 
 
