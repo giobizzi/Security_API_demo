@@ -1,0 +1,766 @@
+{
+	"info": {
+		"name": "API Security Demo - OWASP Top 10",
+		"description": "Complete collection demonstrating API vulnerabilities and mitigations",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+		"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000"
+		},
+		{
+			"key": "alice_token",
+			"value": ""
+		},
+		{
+			"key": "bob_token",
+			"value": ""
+		},
+		{
+			"key": "alice_id",
+			"value": ""
+		},
+		{
+			"key": "bob_id",
+			"value": ""
+		},
+		{
+			"key": "bob_order_id",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "1. Setup - Create Users",
+			"item": [
+				{
+					"name": "Register Alice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"alice_token\", jsonData.token);",
+									"pm.collectionVariables.set(\"alice_id\", jsonData.user_id);",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Token received\", function () {",
+									"    pm.expect(jsonData.token).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"password\": \"password123\",\n  \"email\": \"alice@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Create Alice's account - will have user_id 1"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Bob",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"bob_token\", jsonData.token);",
+									"pm.collectionVariables.set(\"bob_id\", jsonData.user_id);",
+									"pm.collectionVariables.set(\"bob_order_id\", jsonData.user_id);",
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"pm.test(\"Token received\", function () {",
+									"    pm.expect(jsonData.token).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"bob\",\n  \"password\": \"password456\",\n  \"email\": \"bob@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Create Bob's account - will have user_id 2"
+					},
+					"response": []
+				}
+			],
+			"description": "First, create two users: Alice and Bob. Each gets an order automatically."
+		},
+		{
+			"name": "2. ATTACK - BOLA (API1)",
+			"item": [
+				{
+					"name": "🔓 VULNERABLE - Alice accesses Bob's order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 - VULNERABILITY!\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Alice can see Bob's order (BOLA)\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.username).to.eql('bob');",
+									"    console.log('🚨 VULNERABILITY: Alice accessed Bob\\'s order!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/orders/{{bob_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"orders",
+								"{{bob_order_id}}"
+							]
+						},
+						"description": "Alice uses her token to access Bob's order (order_id 2). This succeeds because there's no authorization check!"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Alice blocked from Bob's order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 403 - Protected!\", function () {",
+									"    pm.response.to.have.status(403);",
+									"});",
+									"pm.test(\"Access denied message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Unauthorized');",
+									"    console.log('✅ MITIGATION: Alice blocked from Bob\\'s order!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/secure/orders/{{bob_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"secure",
+								"orders",
+								"{{bob_order_id}}"
+							]
+						},
+						"description": "Same request to secure endpoint - now Alice is blocked with 403 Forbidden"
+					},
+					"response": []
+				},
+				{
+					"name": "Bob can access his own order",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{bob_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/secure/orders/{{bob_order_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"secure",
+								"orders",
+								"{{bob_order_id}}"
+							]
+						},
+						"description": "Bob can successfully access his own order using the secure endpoint"
+					},
+					"response": []
+				}
+			],
+			"description": "Demonstrate Broken Object Level Authorization (BOLA) - OWASP API1"
+		},
+		{
+			"name": "3. ATTACK - Excessive Data Exposure (API3)",
+			"item": [
+				{
+					"name": "🔓 VULNERABLE - Get user with PII",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Response contains sensitive data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('password');",
+									"    console.log('🚨 VULNERABILITY: Password hash exposed!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{alice_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{alice_id}}"
+							]
+						},
+						"description": "Get user data - returns ALL fields including password hash, credit card, SSN"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Get user filtered",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Sensitive data NOT exposed\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.not.have.property('password');",
+									"    pm.expect(jsonData).to.not.have.property('credit_card');",
+									"    pm.expect(jsonData).to.not.have.property('ssn');",
+									"    console.log('✅ MITIGATION: Sensitive data filtered!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{alice_id}}/secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{alice_id}}",
+								"secure"
+							]
+						},
+						"description": "Get user data from secure endpoint - only returns necessary fields"
+					},
+					"response": []
+				}
+			],
+			"description": "Demonstrate Excessive Data Exposure - OWASP API3"
+		},
+		{
+			"name": "4. ATTACK - Mass Assignment (API6)",
+			"item": [
+				{
+					"name": "🔓 VULNERABLE - Alice escalates to admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 - VULNERABILITY!\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Role field was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.updated_fields).to.include('role');",
+									"    console.log('🚨 VULNERABILITY: Alice escalated to admin!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"alice.admin@example.com\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{alice_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{alice_id}}"
+							]
+						},
+						"description": "Alice updates her profile and sneaks in 'role: admin' - this succeeds due to mass assignment!"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Alice is now admin",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/{{alice_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{alice_id}}"
+							]
+						},
+						"description": "Check Alice's user record - role should now be 'admin'"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Role update blocked",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test(\"Role field NOT updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.updated_fields).to.not.include('role');",
+									"    pm.expect(jsonData.updated_fields).to.include('email');",
+									"    console.log('✅ MITIGATION: Role update blocked!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{bob_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"bob.hacker@example.com\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{bob_id}}/secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{bob_id}}",
+								"secure"
+							]
+						},
+						"description": "Bob tries the same attack on secure endpoint - only email is updated, role is ignored"
+					},
+					"response": []
+				}
+			],
+			"description": "Demonstrate Mass Assignment vulnerability - OWASP API6"
+		},
+		{
+			"name": "5. ATTACK - Broken Authentication (API2)",
+			"item": [
+				{
+					"name": "🔓 VULNERABLE - Brute force attempt 1",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong_password_1\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "First brute force attempt - no rate limiting"
+					},
+					"response": []
+				},
+				{
+					"name": "🔓 VULNERABLE - Brute force attempt 2",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong_password_2\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Second attempt - still no rate limiting"
+					},
+					"response": []
+				},
+				{
+					"name": "🔓 VULNERABLE - Brute force attempt 3",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong_password_3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Third attempt - can continue indefinitely!"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Brute force attempt 1",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"bob\",\n  \"password\": \"wrong_password_1\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login-secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login-secure"
+							]
+						},
+						"description": "First attempt on secure endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Brute force attempt 2",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"bob\",\n  \"password\": \"wrong_password_2\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login-secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login-secure"
+							]
+						},
+						"description": "Second attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Brute force attempt 3",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"bob\",\n  \"password\": \"wrong_password_3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login-secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login-secure"
+							]
+						},
+						"description": "Third attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "🔒 SECURE - Brute force BLOCKED (429)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 429 - Rate Limited!\", function () {",
+									"    pm.response.to.have.status(429);",
+									"});",
+									"pm.test(\"Rate limit message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.error).to.include('Rate limit');",
+									"    console.log('✅ MITIGATION: Rate limit active!');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"bob\",\n  \"password\": \"wrong_password_4\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login-secure",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login-secure"
+							]
+						},
+						"description": "Fourth attempt - now blocked with 429 Too Many Requests!"
+					},
+					"response": []
+				}
+			],
+			"description": "Demonstrate lack of rate limiting on authentication - OWASP API2"
+		},
+		{
+			"name": "6. Utility Endpoints",
+			"item": [
+				{
+					"name": "API Documentation",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Get API documentation and list of all endpoints"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if API is running"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+
+}
