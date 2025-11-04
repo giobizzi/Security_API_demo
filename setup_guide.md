@@ -48,12 +48,10 @@ apt install -y python3 python3-pip python3-venv git curl wget jq nano
 ```
 #### Verify installations
 ```bash  
-docker --version
 python3 --version
 
 # Should see:
-# Docker version 24.x
-# Python 3.10.x
+# Python 3.xx.x
 ```
 
 ---
@@ -84,7 +82,7 @@ ls -la
 # Should see:
 # vulnerable_api_app.py
 # requirements.txt
-# splunk-inputs.conf
+# splunk_inputs_app.tar.gz
 # postman_collection.json
 ```
 #### D. Start Flask Application

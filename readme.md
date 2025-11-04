@@ -42,8 +42,8 @@ Client (Postman or CLI)  → Flask API → SQLite Database
 
 **Important**: Run attacks through **BOTH** paths to show vulnerability mitigation:
 
-1. **Vulnerable API** - `http://localhost:5000/{REST_RESOURCE}` 
-2. **Mitigated version** - `http://localhost:8000/{REST_RESOURCE}/secure`
+1. **Vulnerable API** - `http://VM_IP:5000/{REST_RESOURCE}` 
+2. **Mitigated version** - `http://VM_IP:8000/{REST_RESOURCE}/secure`
 
 #### Demo 1: BOLA - Broken Object Level Authorization 
 
@@ -145,7 +145,7 @@ Client (Postman or CLI)  → Flask API → SQLite Database
    ```bash
    # Try 5 wrong passwords
    for i in {1..5}; do
-     curl http://localhost:5000/api/auth/login \
+     curl http://VM_IP:5000/api/auth/login \
        -H "Content-Type: application/json" \
        -d "{\"username\":\"alice\",\"password\":\"wrong$i\"}"
      echo ""
@@ -159,7 +159,7 @@ Client (Postman or CLI)  → Flask API → SQLite Database
    ```bash
    # Only 3 attempts allowed
    for i in {1..4}; do
-     curl http://localhost:5000/api/auth/login-secure \
+     curl http://VM_IP:5000/api/auth/login-secure \
        -H "Content-Type: application/json" \
        -d "{\"username\":\"bob\",\"password\":\"wrong$i\"}"
      echo ""
