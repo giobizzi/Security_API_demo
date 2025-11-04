@@ -155,7 +155,7 @@ Client (Postman or CLI)  → Flask API → SQLite Database
 
    > **Vulnerability:** The attack would be potentially able to try as much as passwords he wants until it finds the right one (brute-force attack)
    
-3. **Flask secure endpoint** (application-level rate limiting):
+2. **Flask secure endpoint** (application-level rate limiting):
    ```bash
    # Only 3 attempts allowed
    for i in {1..4}; do
@@ -167,7 +167,7 @@ Client (Postman or CLI)  → Flask API → SQLite Database
    ```
    - **Result**: 4th attempt returns 429 (stricter limit) ✅
 
-   > **Mitigation:** Now the application limits the authentication attempts to 3 in a 60 seconds time window, and after that returns back 429 errors (avoiding to provide password validity information anymore)
+   > **Mitigation:** Now the application limits the authentication attempts to 3 in a 60 seconds time window, and after that returns back 429 errors (avoiding providing password validity information anymore)
 
    **Show in Splunk** (optional):
    Run SPL query: `index=api_security  attack_type="brute_force"  earliest=-1h`
